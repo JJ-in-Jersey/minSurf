@@ -2,6 +2,30 @@ import numpy as np
 from scipy.interpolate import Rbf
 from matplotlib import pyplot as plt
 from mpl_toolkits import mplot3d
+from math import dist
+
+def new_point(a, b, t):
+    return tuple([a[i]*(1-t)+b[i]*t for i in range(0,3)])
+
+def step_size(points):
+    dists = []
+    for i, pt in enumerate(points[:1]):
+        dists.append(dist(pt, points[i+1]))
+    return np.array(dists).min()/10
+
+def new_edge(a,b,ss):
+    new_points = []
+    for t in range(0,dist(a,b),ss):
+        new_points.append(new_point(a,b,t))
+    return new_points
+
+points = [[0,0,2], [3,0,4], [3,4,2], [0,4,4]]
+
+ss = step_size(points)
+
+print(new_edge(points[0],points[1], ss))
+
+
 
 fig = plt.figure()
 ax = plt.axes(projection="3d")
