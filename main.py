@@ -6,20 +6,20 @@ from math import dist
 def new_point(a, b, t):
     return [a[i]*(1-t)+b[i]*t for i in range(0,3)]
 
+def close_loop(pts):
+    nps = [pt for pt in pts]
+    nps.append(nps[0])
+    return nps
+
 def step_size(pts):
     dists = []
-    closed_points = [pt for pt in points]
-    closed_points.append(closed_points[0])
-    for i, pt in enumerate(closed_points[:-1]):
-        dists.append(dist(pt, closed_points[i+1]))
+    clps = close_loop(pts)
+    for i, pt in enumerate(clps[:-1]): dists.append(dist(pt, clps[i+1]))
     return np.array(dists).min()/10
 
 def new_edge(a,b,ss):
     new_points = []
-    sc = int(round(dist(a,b)/ss,0))
-    for step in range(0,sc):
-        t = step*ss/dist(a,b)
-        new_points.append(new_point(a,b,t))
+    for step in range(0, int(round(dist(a,b)/ss,0))): new_points.append(new_point(a,b,step*ss/dist(a,b)))
     return new_points
 
 points = [[0,0,2], [3,0,4], [3,4,2], [0,4,4]]
@@ -27,27 +27,16 @@ points = [[0,0,2], [3,0,4], [3,4,2], [0,4,4]]
 ss = step_size(points)
 
 nps = []
-cps = [pt for pt in points]
-cps.append(cps[0])
-for i, pt in enumerate(cps[:-1]):
-    nps += new_edge(pt, cps[i + 1], ss)
+clpts = close_loop(points)
+for i, pt in enumerate(clpts[:-1]):
+    nps += new_edge(pt, clpts[i + 1], ss)
 
-x = [pt[0] for pt in nps]
-y = [pt[1] for pt in nps]
-z = [pt[2] for pt in nps]
+x = np.array([pt[0] for pt in nps])
+y = np.array([pt[1] for pt in nps])
+z = np.array([pt[2] for pt in nps])
 
 fig = plt.figure()
 ax = plt.axes(projection="3d")
-
-ax.scatter(x,y,z)
-plt.show()
-
-# x = np.array([0.0, 1.5, 3.0, 3.0, 3.0, 1.5, 0.0, 0.0])
-# y = np.array([0.0, 0.0, 0.0, 2.0, 4.0, 4.0, 4.0, 2.0])
-# z = np.array([2.0, 3.0, 4.0, 3.0, 2.0, 3.0, 4.0, 2.0])
-x = np.array([0.0, 3.0, 3.0, 0.0])
-y = np.array([0.0, 0.0, 4.0, 4.0])
-z = np.array([2.0, 4.0, 2.0, 4.0])
 
 x_min = x.min()
 x_max = x.max()
