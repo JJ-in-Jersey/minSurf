@@ -5,7 +5,9 @@ from mpl_toolkits import mplot3d
 from math import dist
 
 def new_point(a, b, t):
-    return tuple([a[i]*(1-t)+b[i]*t for i in range(0,3)])
+    np = tuple([a[i]*(1-t)+b[i]*t for i in range(0,3)])
+    print(np)
+    return np
 
 def step_size(points):
     dists = []
@@ -15,7 +17,9 @@ def step_size(points):
 
 def new_edge(a,b,ss):
     new_points = []
-    for t in range(0,dist(a,b),ss):
+    sc = int(round(dist(a,b)/ss,0))
+    for step in range(0,sc):
+        t = step*ss/dist(a,b)
         new_points.append(new_point(a,b,t))
     return new_points
 
