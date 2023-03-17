@@ -4,14 +4,14 @@ from matplotlib import pyplot as plt
 from math import dist
 
 def new_point(a, b, t):
-    np = tuple([a[i]*(1-t)+b[i]*t for i in range(0,3)])
-    print(np)
-    return np
+    return [a[i]*(1-t)+b[i]*t for i in range(0,3)]
 
-def step_size(points):
+def step_size(pts):
     dists = []
-    for i, pt in enumerate(points[:1]):
-        dists.append(dist(pt, points[i+1]))
+    closed_points = [pt for pt in points]
+    closed_points.append(closed_points[0])
+    for i, pt in enumerate(closed_points[:-1]):
+        dists.append(dist(pt, closed_points[i+1]))
     return np.array(dists).min()/10
 
 def new_edge(a,b,ss):
@@ -26,11 +26,11 @@ points = [[0,0,2], [3,0,4], [3,4,2], [0,4,4]]
 
 ss = step_size(points)
 
-print(new_edge(points[0],points[1], ss))
-
-for i, pt in enumerate(points[:1]):
-    nps = []
-    nps.append(new_edge(pt, points[i + 1],ss))
+nps = []
+cps = [pt for pt in points]
+cps.append(cps[0])
+for i, pt in enumerate(cps[:-1]):
+    nps += new_edge(pt, cps[i + 1], ss)
 
 x = [pt[0] for pt in nps]
 y = [pt[1] for pt in nps]
@@ -38,6 +38,9 @@ z = [pt[2] for pt in nps]
 
 fig = plt.figure()
 ax = plt.axes(projection="3d")
+
+ax.scatter(x,y,z)
+plt.show()
 
 # x = np.array([0.0, 1.5, 3.0, 3.0, 3.0, 1.5, 0.0, 0.0])
 # y = np.array([0.0, 0.0, 0.0, 2.0, 4.0, 4.0, 4.0, 2.0])
