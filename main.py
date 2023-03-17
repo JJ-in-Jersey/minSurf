@@ -48,9 +48,5 @@ XI, YI = np.meshgrid(xi, yi)
 
 rbf = Rbf(x,y,z,function='thin-plate',smooth=0.0)
 ZI = rbf(XI,YI)
-
-# ax.plot3D(x, y, z, 'red')
-# ax.plot3D(XI, YI, ZI, 'red')
 ax.plot_wireframe(XI, YI, ZI, rstride=10, cstride=10)
-# ax.scatter3D(XI, YI, ZI, c=z, cmap='cividis')
 plt.show()
