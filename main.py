@@ -32,6 +32,10 @@ for i, pt in enumerate(points[:1]):
     nps = []
     nps.append(new_edge(pt, points[i + 1],ss))
 
+x = [pt[0] for pt in nps]
+y = [pt[1] for pt in nps]
+z = [pt[2] for pt in nps]
+
 fig = plt.figure()
 ax = plt.axes(projection="3d")
 
