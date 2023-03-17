@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.interpolate import Rbf
 from matplotlib import pyplot as plt
-from mpl_toolkits import mplot3d
 from math import dist
 
 def new_point(a, b, t):
@@ -29,7 +28,9 @@ ss = step_size(points)
 
 print(new_edge(points[0],points[1], ss))
 
-
+for i, pt in enumerate(points[:1]):
+    nps = []
+    nps.append(new_edge(pt, points[i + 1],ss))
 
 fig = plt.figure()
 ax = plt.axes(projection="3d")
