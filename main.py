@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.interpolate import Rbf
+from scipy.interpolate import Rbf as RBF
+from scipy.interpolate import RBFInterpolator as RBFI
 from matplotlib import pyplot as plt
 from math import dist
 
@@ -22,7 +23,8 @@ def new_edge(a,b,ss):
     for step in range(0, int(round(dist(a,b)/ss,0))): new_points.append(new_point(a,b,step*ss/dist(a,b)))
     return new_points
 
-points = [[0,0,2], [3,0,4], [3,4,2], [0,4,4]]
+points = [[0,0,2], [300,0,4], [300,400,2], [0,400,4]]
+points = [[0,0,4], [3000,0,4], [3000,4000,4], [0,4000,4]]
 
 ss = step_size(points)
 
@@ -35,6 +37,14 @@ x = np.array([pt[0] for pt in nps])
 y = np.array([pt[1] for pt in nps])
 z = np.array([pt[2] for pt in nps])
 
+rbf = RBF(x,y,z, function='thin_plate', smooth=100.0, mode='1-D')
+
+# fig = plt.figure()
+# ax = plt.axes(projection="3d")
+# # ax.plot_wireframe(x, y, z, rstride=10, cstride=10)
+# ax.scatter(x, y, z)
+# plt.show()
+
 fig = plt.figure()
 ax = plt.axes(projection="3d")
 
@@ -45,8 +55,6 @@ y_max = y.max()
 xi = np.linspace(x_min, x_max, 200)
 yi = np.linspace(y_min, y_max, 200)
 XI, YI = np.meshgrid(xi, yi)
-
-rbf = Rbf(x,y,z,function='thin-plate',smooth=0.0)
 ZI = rbf(XI,YI)
 ax.plot_wireframe(XI, YI, ZI, rstride=10, cstride=10)
 plt.show()
