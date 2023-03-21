@@ -6,15 +6,11 @@ from math import dist
 def new_point(a, b, t):
     return [a[i]*(1-t)+b[i]*t for i in range(0,3)]
 
-def close_loop(pts):
-    nps = [pt for pt in pts]
-    nps.append(nps[0])
-    return nps
-
 def step_size(pts):
     dists = []
-    clps = close_loop(pts)
-    for i, pt in enumerate(clps[:-1]): dists.append(dist(pt, clps[i+1]))
+    points = pts+[pts[0]]
+    for i, pt in enumerate(points[:-1]):
+        dists.append(dist(pt, points[i+1]))
     return np.array(dists).min()/10
 
 def new_edge(a,b,ss):
@@ -29,7 +25,7 @@ points = [[0,0,0], [3000,0,2], [3000,4000,0], [0,4000,2]]
 ss = step_size(points)
 
 nps = []
-clpts = close_loop(points)
+clpts = points + [points[0]]
 for i, pt in enumerate(clpts[:-1]):
     nps += new_edge(pt, clpts[i + 1], ss)
 
