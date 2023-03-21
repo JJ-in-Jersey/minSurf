@@ -51,6 +51,8 @@ xi = np.linspace(x_min, x_max, 200)
 yi = np.linspace(y_min, y_max, 200)
 XI, YI = np.meshgrid(xi, yi)
 ZI = rbf(XI,YI)
-ax.scatter(x, y, z)
+
+ax.scatter(x, y, z, c='red')
 ax.plot_wireframe(XI, YI, ZI, rstride=10, cstride=10)
+
 plt.show()
