@@ -24,7 +24,7 @@ points = [[0,0,0], [3000,0,2], [3000,4000,0], [0,4000,2]]
 
 ss = step_size(points)
 
-nps = []
+nps = []`
 clpts = points + [points[0]]
 for i, pt in enumerate(clpts[:-1]):
     nps += new_edge(pt, clpts[i + 1], ss)
