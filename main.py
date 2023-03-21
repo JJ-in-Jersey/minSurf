@@ -23,8 +23,9 @@ def new_edge(a,b,ss):
     for step in range(0, int(round(dist(a,b)/ss,0))): new_points.append(new_point(a,b,step*ss/dist(a,b)))
     return new_points
 
-points = [[0,0,2], [300,0,4], [300,400,2], [0,400,4]]
-points = [[0,0,4], [3000,0,4], [3000,4000,4], [0,4000,4]]
+points = [[0,0,2], [3,0,4], [3,4,2], [0,4,4]]
+points = [[0,0,0], [3,0,2], [3,4,0], [0,4,2]]
+points = [[0,0,0], [3000,0,2], [3000,4000,0], [0,4000,2]]
 
 ss = step_size(points)
 
@@ -39,12 +40,6 @@ z = np.array([pt[2] for pt in nps])
 
 rbf = RBF(x,y,z, function='thin_plate', smooth=100.0, mode='1-D')
 
-# fig = plt.figure()
-# ax = plt.axes(projection="3d")
-# # ax.plot_wireframe(x, y, z, rstride=10, cstride=10)
-# ax.scatter(x, y, z)
-# plt.show()
-
 fig = plt.figure()
 ax = plt.axes(projection="3d")
 
@@ -56,5 +51,6 @@ xi = np.linspace(x_min, x_max, 200)
 yi = np.linspace(y_min, y_max, 200)
 XI, YI = np.meshgrid(xi, yi)
 ZI = rbf(XI,YI)
+ax.scatter(x, y, z)
 ax.plot_wireframe(XI, YI, ZI, rstride=10, cstride=10)
 plt.show()
