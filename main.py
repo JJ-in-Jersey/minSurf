@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.interpolate import Rbf as RBF
-from scipy.interpolate import RBFInterpolator as RBFI
 from matplotlib import pyplot as plt
 from math import dist
 
