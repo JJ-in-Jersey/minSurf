@@ -7,8 +7,8 @@ def new_point(a, b, t):
     return [a[i]*(1-t)+b[i]*t for i in range(0,3)]
 
 def step_size(pts):
-    points = np.multiply(np.append(pts, [pts[0]], axis=0), [1,1,0])
-    return np.array([dist(pt, points[i+1]) for i, pt in enumerate(points[:-1])]).min()/10
+    pts_xy = np.multiply(np.append(pts, [pts[0]], axis=0), [1,1,0])  # close the figure, zero out z values
+    return np.array([dist(pt, pts_xy[i+1]) for i, pt in enumerate(pts_xy[:-1])]).min()/10
 
 def new_edge(a,b,ss):
     new_points = []
