@@ -17,22 +17,27 @@ def new_edge(a,b,ss):
     return new_points
 
 # points = [[0,0,2], [3,0,4], [3,4,2], [0,4,4]]
-input_points = np.array([[0,0,0], [3,0,2], [3,4,0], [0,4,2]])
-scale = 10000
-points = np.multiply(input_points,[scale, scale, 1])
-#points = [[0,0,0], [30000,0,2], [30000,40000,0], [0,40000,2]]
-print(type(points))
+input_points = np.array([[0,0,1], [3,0,3], [3,4,2], [0,4,3]])
+input_points = np.array([[0,0,10], [3,0,30], [3,4,20], [0,4,30]])
+ss = step_size(input_points)
 
-ss = step_size(points)
+# z_min = input_points[:,2].min()
+# lowered_point = np.add(input_points,[0,0,-1*z_min])
+
+scale = 100
+points = np.multiply(input_points,[scale, scale, 1])
+ss = ss*scale
 
 nps = []
 clpts = np.append(points, [points[0]], axis=0)
 for i, pt in enumerate(clpts[:-1]):
     nps += new_edge(pt, clpts[i + 1], ss)
 
-x = np.array([pt[0] for pt in nps])
-y = np.array([pt[1] for pt in nps])
-z = np.array([pt[2] for pt in nps])
+nps = np.array(nps)
+
+x = nps[:,0]
+y = nps[:,1]
+z = nps[:,2]
 
 rbf = RBF(x,y,z, function='thin_plate', smooth=100.0, mode='1-D')
 
@@ -40,7 +45,7 @@ fig = plt.figure()
 ax = plt.axes(projection="3d")
 
 ax.scatter(x, y, z, c='red')
-#plt.show()
+# plt.show()
 
 x_min = x.min()
 x_max = x.max()
