@@ -20,32 +20,29 @@ class TidePoints:
     def __init__(self, *tide_points):
         self.size = 0
         self.index = 0
-        self.tide_points = None
+        self.points = None
         if tide_points:
             for pt in tide_points:
                 if not isinstance(pt, TidePoint): raise TypeError
-            self.tide_points = np.asarray(tide_points)
+            self.points = np.asarray(tide_points)
             self.size = len(tide_points)
 
-    def add(self, tide_point):
+    def add(self, tide_point: TidePoint):
         if not isinstance(tide_point, TidePoint): raise TypeError
-        if self.tide_points is not None:
-            self.tide_points = np.append(self.tide_points, np.asarray(tide_point))
+        if self.points is not None:
+            self.points = np.append(self.points, np.asarray(tide_point))
         else:
-            self.tide_points = np.asarray(tide_point)
+            self.points = np.asarray(tide_point)
 
     def __iter__(self):
         return self
 
     def __next__(self):
         if self.index < self.size:
-            tp = self.tide_points[self.index]
+            tp = self.points[self.index]
             self.index += 1
             return tp
         raise StopIteration
-
-def vector(start: TidePoint, end: TidePoint):
-    return np.array([start.point, end.point])
 
 class VelocitySurface:
 
@@ -54,22 +51,21 @@ class VelocitySurface:
     @staticmethod
     def vector(start: TidePoint, end: TidePoint):
         if not isinstance(start, TidePoint) or not isinstance(end, TidePoint): raise TypeError
-        return np.array([np.array([start.lat, start.lon, start.velo]), np.array([end.lat, end.lon, end.velo])])
+        return np.array([start.point, end.point])
 
     @staticmethod
     def new_point(a, b, t):
         return [a[i]*(1-t)+b[i]*t for i in range(0,3)]
 
     @staticmethod
-    def step_size(pts):
-        pts_xy = np.multiply(np.append(pts, [pts[0]], axis=0), [1,1,0])  # close the figure, zero out z values
-        return np.array([dist(pt, pts_xy[i+1]) for i, pt in enumerate(pts_xy[:-1])]).min()/10
+    def step_size(vectors): return np.array([length(v) for v in vectors]).min()/10
 
-    def new_edge(self, a, b, ss):
-        new_points = []
-        for step in range(0, int(round(dist(a,b)/ss,0))):
-            new_points.append(self.new_point(a,b,step*ss/dist(a,b)))
-        return new_points
+    def edge_points(self, a, b, ss):
+        edge_points = []
+        number_of_points = int(round(dist(a,b)/ss,0))
+        for step in range(1, number_of_points):
+            edge_points.append(self.new_point(a,b,step*ss/dist(a,b)))
+        return edge_points
 
     def show_surface(self):
         self.x_min = int(round(self.x.min(), 0))
@@ -100,19 +96,17 @@ class VelocitySurface:
         scaled_tide_points = TidePoints()
         for pt in tide_points:
             scaled_tide_points.add(pt.scale(VelocitySurface.scale, VelocitySurface.scale, 1))
-
-        ss = self.step_size(tide_points)
-        points = np.multiply(tide_points.points,[VelocitySurface.scale, VelocitySurface.scale, 1])  # scale up the x, y values
-        vectors = [vector()]
+        vectors = [VelocitySurface.vector(pt, scaled_tide_points.points[i+1]) for i, pt in enumerate(scaled_tide_points.points[:-1])]
+        if len(vectors) > 1: vectors.append(np.array([vectors[-1][1], vectors[0][0]]))  # close the figure
+        ss = self.step_size(vectors)
         self.ax = plot.axes(projection="3d")
 
-
-
-        new_points = []
-        closed_figure = np.append(points, [points[0]], axis=0)  # close figure
-        for i, pt in enumerate(closed_figure[:-1]):
-            new_points += self.new_edge(pt, closed_figure[i + 1], ss)
-        new_points = np.array(new_points)
+        points = [vectors[0][0]]
+        points += [v[1] for v in vectors]
+        for i, pt in enumerate(points[:-1]):
+            points = [pt.tolist()] + self.edge_points(pt, points[i + 1], ss) + points[i + 1:-1]
+        if len(vectors) == 1: points += [vectors[0][1].tolist()]
+        new_points = np.array(points)
 
         self.x = new_points[:, 0]
         self.y = new_points[:, 1]
@@ -121,23 +115,19 @@ class VelocitySurface:
 
 p1 = TidePoint(0, 0, 100)
 p2 = TidePoint(3, 0, 300)
-p3 = TidePoint(3, 4, 200)
-p4 = TidePoint(0, 4, 300)
+# p3 = TidePoint(3, 4, 200)
+# p4 = TidePoint(0, 4, 300)
 
-print(vector(p1, p2))
-tps = TidePoints(p1,p2,p3,p4)
-# tps = TidePoints(p1,p2)
-
-
-vs = VelocitySurface(tps)
+# tide_points = TidePoints(p1,p2,p3,p4)
+tide_points = TidePoints(p1,p2)
+vs = VelocitySurface(tide_points)
 vs.show_surface()
 
-for wait in range(0,20):
+for wait in range(0,50):
     rand_x = randrange(vs.x_max - vs.x_min) + vs.x_min
     rand_y = randrange(vs.y_max - vs.y_min) + vs.y_min
     rand_z = vs.surface(rand_x, rand_y)
     vs.show_point(TidePoint(rand_x, rand_y, rand_z))
-    print(wait)
-    sleep(0.5)
+    sleep(0.05)
 
 plot.show()
