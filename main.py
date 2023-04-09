@@ -20,7 +20,7 @@ class TidePoints:
     def __init__(self, *tide_points):
         self.size = 0
         self.index = 0
-        self.tide_points = None
+        self.tide_points = self.points = None
         if tide_points:
             for pt in tide_points:
                 if not isinstance(pt, TidePoint): raise TypeError
@@ -35,12 +35,21 @@ class TidePoints:
         else:
             self.points = np.asarray(tide_point)
 
+    def count(self):
+        if self.tide_points is None: return 0
+        return len(self.tide_points)
+
+    def first_tide_point(self): return self.tide_points[0]
+    def last_tide_point(self): return self.tide_points[-1]
+    def first_point(self): return self.points[0]
+    def last_point(self): return self.points[-1]
+
     def __iter__(self):
         return self
 
     def __next__(self):
         if self.index < self.size:
-            tp = self.points[self.index]
+            tp = self.tide_points[self.index]
             self.index += 1
             return tp
         raise StopIteration
@@ -48,6 +57,8 @@ class TidePoints:
 class VelocitySurface:
 
     scale = 100
+    LINE = 'LINE'
+    SURFACE = 'SURFACE'
 
     @staticmethod
     def vector(start, finish):
@@ -111,27 +122,31 @@ class VelocitySurface:
         return point
 
     def __init__(self, tide_points):
+        if tide_points.count() < 2: raise ValueError
         if not isinstance(tide_points, TidePoints): raise TypeError
         self.x_min = self.x_max = self.y_min = self.y_max = 0
         self.shape = None
+
+        if tide_points.count() == 2:
+            self.shape = VelocitySurface.LINE
+        else:
+            self.shape = VelocitySurface.SURFACE
+
         scaled_tide_points = TidePoints()
         for pt in tide_points:
             scaled_tide_points.add(pt.scale(VelocitySurface.scale, VelocitySurface.scale, 1))
-        vectors = [VelocitySurface.vector(pt, scaled_tide_points.points[i+1]) for i, pt in enumerate(scaled_tide_points.points[:-1])]
-        if len(vectors) == 1:
-            self.shape = 'LINE'
-        else:
-            self.shape = 'SURFACE'
 
-        if self.shape == 'SURFACE':
-            vectors.append(VelocitySurface.vector(scaled_tide_points.points[-1], scaled_tide_points.points[0]))  # close the figure
+        vectors = [VelocitySurface.vector(pt, scaled_tide_points.points[i+1]) for i, pt in enumerate(scaled_tide_points.points[:-1])]
+        if self.shape == VelocitySurface.SURFACE:  # close the figure
+            vectors.append(VelocitySurface.vector(scaled_tide_points.last_tide_point(), scaled_tide_points.first_tide_point()))
+
         ss = self.step_size(vectors)
         self.ax = plot.axes(projection="3d")
 
-        points = [vectors[0][0]]
+        points = [scaled_tide_points.first_point()]
         points += [v[1] for v in vectors]
-        if self.shape == 'SURFACE': last_point = vectors[0][0]
-        if self.shape == 'LINE': last_point = vectors[0][1]
+        if self.shape == 'SURFACE': last_point = scaled_tide_points.first_point()
+        if self.shape == 'LINE': last_point = scaled_tide_points.last_point()
 
         new_points = []
         for i, pt in enumerate(points[:-1]):
