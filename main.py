@@ -118,6 +118,9 @@ class VelocitySurface:
     def plot_vector(self, vector, color):
         self.ax.plot3D(x_values(vector), y_values(vector), z_values(vector), c=color, linestyle='dotted')
 
+    def plot_point(self, point, color, mark):
+        self.ax.scatter(point[0], point[1], point[2], c=color, linestyle='dotted', marker=mark)
+
     def show_axes(self):
         xi = np.linspace(self.x_min, self.x_max, 200)
         yi = np.linspace(self.y_min, self.y_max, 200)
@@ -143,7 +146,8 @@ class VelocitySurface:
         elif self.shape == VelocitySurface.LINE:
             z = self.projection(tide_point.lat, tide_point.lon, self.vector)
             # self.ax.scatter(tide_point.lat, tide_point.lon, 0, c='lightgrey', marker='.')
-            self.ax.scatter(z[0], z[1], z[2], c='red')
+            # self.ax.scatter(z[0], z[1], z[2], c='red')
+            self.plot_point(z, 'red', 'o')
 
         plot.show(block=False)
         plot.pause(0.01)
@@ -224,8 +228,8 @@ p3 = TidePoint(3, 4, 200)
 p4 = TidePoint(0, 4, 300)
 
 tide_points = TidePoints(p1,p2,p3,p4)
-# tide_points = TidePoints(p1,p3)
-tide_points = TidePoints(p1,p3, p4)
+tide_points = TidePoints(p1,p3)
+# tide_points = TidePoints(p1,p3, p4)
 vs = VelocitySurface(tide_points)
 vs.show_axes()
 
