@@ -139,15 +139,12 @@ class VelocitySurface:
 
     def show_point(self, tide_point):
         if not isinstance(tide_point, TidePoint): raise TypeError
+        z = tide_point.velo
         if self.shape == VelocitySurface.SURFACE:
-            z = self.surface(tide_point.lat, tide_point.lon)
-            self.ax.scatter(tide_point.lat, tide_point.lon, 0, c='lightgrey', marker='.')
-            self.ax.scatter(tide_point.lat, tide_point.lon, z, c='red', marker='.')
+            self.plot_point(tide_point.point, 'red', 'o')
+            self.plot_point(tide_point.scale(1,1,0).point, 'lightgrey', 'o')
         elif self.shape == VelocitySurface.LINE:
-            z = self.projection(tide_point.lat, tide_point.lon, self.vector)
-            # self.ax.scatter(tide_point.lat, tide_point.lon, 0, c='lightgrey', marker='.')
-            # self.ax.scatter(z[0], z[1], z[2], c='red')
-            self.plot_point(z, 'red', 'o')
+            self.plot_point(tide_point.point, 'red', '0')
 
         plot.show(block=False)
         plot.pause(0.01)
@@ -164,6 +161,15 @@ class VelocitySurface:
         projection = translate_3D(projection, VelocitySurface.vector(projection[0], vector[0]))
         return projection[1]
 
+    def get_velocity(self, tide_point):
+        if not isinstance(tide_point, TidePoint): raise TypeError
+        rtp = None
+        if self.shape == VelocitySurface.SURFACE:
+            z = self.surface(tide_point.lat, tide_point.lon)
+            return np.array([tide_point.lat, tide_point.lon, z])
+        elif self.shape == VelocitySurface.LINE:
+            z = self.projection(tide_point.lat, tide_point.lon, self.vector)
+            return z
 
     def __init__(self, tide_points):
         if tide_points.size < 2: raise ValueError
@@ -228,7 +234,7 @@ p3 = TidePoint(3, 4, 200)
 p4 = TidePoint(0, 4, 300)
 
 tide_points = TidePoints(p1,p2,p3,p4)
-tide_points = TidePoints(p1,p3)
+# tide_points = TidePoints(p1,p3)
 # tide_points = TidePoints(p1,p3, p4)
 vs = VelocitySurface(tide_points)
 vs.show_axes()
@@ -236,7 +242,9 @@ vs.show_axes()
 for wait in range(0,50):
     rand_x = randrange(vs.x_max - vs.x_min) + vs.x_min
     rand_y = randrange(vs.y_max - vs.y_min) + vs.y_min
-    vs.show_point(TidePoint(rand_x, rand_y, 0))
+
+    pt = vs.get_velocity(TidePoint(rand_x, rand_y, 0))
+    vs.show_point(TidePoint(pt[0], pt[1], pt[2]))
     sleep(0.05)
 
 plot.show()
