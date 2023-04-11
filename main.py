@@ -115,8 +115,8 @@ class VelocitySurface:
             edge_points.append(self.new_point(a,b,step*ss/dist(a,b)))
         return edge_points
 
-    def plot_vector(self, vector, color):
-        self.ax.plot3D(x_values(vector), y_values(vector), z_values(vector), c=color, linestyle='dotted')
+    def plot_vector(self, vector, color, style):
+        self.ax.plot3D(x_values(vector), y_values(vector), z_values(vector), c=color, linestyle=style)
 
     def plot_point(self, point, color, mark):
         self.ax.scatter(point[0], point[1], point[2], c=color, linestyle='dotted', marker=mark)
@@ -129,32 +129,33 @@ class VelocitySurface:
             ZI = self.surface(XI, YI)
 
         self.ax.scatter(self.edge_x, self.edge_y, self.edge_z, c='orange', marker='.')
-        self.ax.scatter(self.scaled_x, self.scaled_y, self.scaled_z, c='black', marker='.')
+        self.ax.scatter(self.scaled_x, self.scaled_y, self.scaled_z, c='orange', marker='.')
         if self.shape == VelocitySurface.LINE:
-            self.ax.plot3D(self.scaled_x, self.scaled_y, self.scaled_z, color='grey', linewidth=0.25)
+            self.plot_vector(self.vector, 'lightgrey', 'solid')
+            self.plot_vector(VelocitySurface.vector(z_intercept(self.vector), self.vector[0]), 'grey', 'dotted')
         if self.shape == VelocitySurface.SURFACE:
             self.ax.plot_wireframe(XI, YI, ZI, rstride=10, cstride=10, color='grey', linewidth=0.25)
         plot.show(block=False)
         plot.pause(0.01)
 
-    def show_point(self, tide_point):
+    def show_point(self, tide_point, color, mark):
         if not isinstance(tide_point, TidePoint): raise TypeError
-        z = tide_point.velo
+        # z = tide_point.velo
         if self.shape == VelocitySurface.SURFACE:
-            self.plot_point(tide_point.point, 'red', 'o')
+            self.plot_point(tide_point.point, color, mark)
             self.plot_point(tide_point.scale(1,1,0).point, 'lightgrey', 'o')
         elif self.shape == VelocitySurface.LINE:
-            self.plot_point(tide_point.point, 'red', '0')
+            self.plot_point(tide_point.point, 'red', 'o')
+            xy_vector = VelocitySurface.vector(z_intercept(self.vector), tide_point.scale(1,1,0).point)
+            self.plot_vector(xy_vector, 'lightgrey', 'dotted')
 
         plot.show(block=False)
         plot.pause(0.01)
 
     def projection(self, x, y, vector):
         z_point = z_intercept(vector)
-        self.plot_vector(VelocitySurface.vector(z_point, vector[0]), 'lightgrey')
         vector = VelocitySurface.vector(z_point, vector[1])
         xy_vector = VelocitySurface.vector(z_point, [x,y,0])
-        self.plot_vector(xy_vector, 'lightgrey')
         magnitude = np.vdot(xy_vector, vector)/length(vector)
         unit_vector = np.multiply(vector, 1/length(vector))
         projection = np.multiply(unit_vector, magnitude)
@@ -234,7 +235,7 @@ p3 = TidePoint(3, 4, 200)
 p4 = TidePoint(0, 4, 300)
 
 tide_points = TidePoints(p1,p2,p3,p4)
-# tide_points = TidePoints(p1,p3)
+tide_points = TidePoints(p1,p3)
 # tide_points = TidePoints(p1,p3, p4)
 vs = VelocitySurface(tide_points)
 vs.show_axes()
@@ -242,9 +243,12 @@ vs.show_axes()
 for wait in range(0,50):
     rand_x = randrange(vs.x_max - vs.x_min) + vs.x_min
     rand_y = randrange(vs.y_max - vs.y_min) + vs.y_min
+    vs.plot_point(np.array([rand_x, rand_y, 0]), 'grey', '.')
 
     pt = vs.get_velocity(TidePoint(rand_x, rand_y, 0))
-    vs.show_point(TidePoint(pt[0], pt[1], pt[2]))
+    vs.plot_point(pt, 'red', '.')
+    plot.show(block=False)
+    plot.pause(0.01)
     sleep(0.05)
 
 plot.show()
