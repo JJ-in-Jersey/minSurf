@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.linalg import norm as length
 from sympy.geometry import Point, Line, Segment, Plane
 from sympy import symbols
 
@@ -7,19 +6,6 @@ from scipy.interpolate import Rbf as RBF
 from matplotlib import pyplot as plot
 from random import randrange
 from time import sleep
-
-def translate_3D(points, vector):
-    delta_x = vector[1][0] - vector[0][0]
-    delta_y = vector[1][1] - vector[0][1]
-    delta_z = vector[1][2] - vector[0][2]
-    new_points = []
-    for pt in points:
-        new_points.append([pt[0]+delta_x, pt[1]+delta_y, pt[2]+delta_z])
-    return np.array(new_points)
-
-def x_values(points): return points[:, 0]
-def y_values(points): return points[:, 1]
-def z_values(points): return points[:, 2]
 
 class VelocitySurface:
 
@@ -39,10 +25,10 @@ class VelocitySurface:
 
     def plot_segment(self, segment, color, style):
         points = np.array(segment.points).astype(float)
-        self.ax.plot3D(x_values(points), y_values(points), z_values(points), c=color, linestyle=style)
+        self.ax.plot3D(self.scaled_x, self.scaled_y, self.scaled_z, c=color, linestyle=style)
 
     def plot_point(self, point, color, mark):
-        self.ax.scatter(point[0], point[1], point[2], c=color, marker=mark)
+        self.ax.scatter(point.x, point.y, point.z, c=color, marker=mark)
 
     def show_axes(self):
         self.ax = plot.axes(projection="3d")
@@ -66,24 +52,13 @@ class VelocitySurface:
         plot.show(block=False)
         plot.pause(0.01)
 
-    def projec(self, x, y, segment):
-        z_intercept = vs.XY_PLANE.intersection(Line(segment))[0]
-        base_vector = np.array(Segment(z_intercept, segment.p1).points).astype(float)
-        xy_vector = np.array(Segment(z_intercept, [x,y,0]).points).astype(float)
-
-        magnitude = np.vdot(xy_vector, base_vector)/length(base_vector)
-        unit_vector = np.multiply(base_vector, 1/length(base_vector))
-        projection = np.multiply(unit_vector, magnitude)
-        projection = translate_3D(projection, np.array(Segment(projection[0], base_vector[0]).points).astype(float))
-        return projection[1]
-
     def get_velocity(self, point: Point):
         if not isinstance(point, Point): raise TypeError
         if self.shape == VelocitySurface.SURFACE:
-            return Point(point[0], point[1], self.surface(point[0], point[1]).tolist()).evalf()
+            return Point(point.x, point.y, self.surface(point[0], point[1]).tolist()).evalf()
         elif self.shape == VelocitySurface.LINE:
-            z = self.projec(point.x, point.y, self.base_vector)
-            zz = Line(self.base_vector).projection(point)
+            z = Line(self.base_vector).projection(point)
+            vs.plot_point(z, 'red', 'o')
             return z
 
     def __init__(self, *points):
@@ -113,18 +88,18 @@ class VelocitySurface:
         points = np.array(points).astype(float)
         edge_points = np.array(edge_points).astype(float)
 
-        self.scaled_x = x_values(points)
-        self.scaled_y = y_values(points)
-        self.scaled_z = z_values(points)
+        self.scaled_x = points[:, 0]
+        self.scaled_y = points[:, 1]
+        self.scaled_z = points[:, 2]
 
-        self.edge_x = x_values(edge_points)
-        self.edge_y = y_values(edge_points)
-        self.edge_z = z_values(edge_points)
+        self.edge_x = edge_points[:, 0]
+        self.edge_y = edge_points[:, 1]
+        self.edge_z = edge_points[:, 2]
 
-        self.x_min = int(round(x_values(points).min(), 0))
-        self.x_max = int(round(x_values(points).max(), 0))
-        self.y_min = int(round(y_values(points).min(), 0))
-        self.y_max = int(round(y_values(points).max(), 0))
+        self.x_min = int(round(self.scaled_x.min(), 0))
+        self.x_max = int(round(self.scaled_x.max(), 0))
+        self.y_min = int(round(self.scaled_y.min(), 0))
+        self.y_max = int(round(self.scaled_y.max(), 0))
 
         if self.shape == VelocitySurface.SURFACE:
             self.surface = RBF(self.edge_x, self.edge_y, self.edge_z, function='thin_plate', smooth=100.0)
@@ -138,21 +113,21 @@ p4 = Point(0, 4, 300)
 vs = VelocitySurface(p1,p3)
 vs.show_axes()
 
-for wait in range(0,50):
-    rand_x = randrange(vs.x_max - vs.x_min) + vs.x_min
-    rand_y = randrange(vs.y_max - vs.y_min) + vs.y_min
+for wait in range(0,5):
+
+    rand_pt = Point(randrange(vs.x_max - vs.x_min) + vs.x_min, randrange(vs.y_max - vs.y_min) + vs.y_min, 0)
 
     if vs.shape == vs.SURFACE:
-        vs.plot_point(Point(rand_x, rand_y, 0), 'grey', '.')
-        vs.plot_point(vs.get_velocity(Point(rand_x, rand_y, 0)), 'red', '.')
+        vs.plot_point(rand_pt, 'grey', '.')
+        vs.plot_point(vs.get_velocity(rand_pt), 'red', '.')
     elif vs.shape == vs.LINE:
+        vs.plot_point(rand_pt, 'red', '.')
         z_intercept = vs.XY_PLANE.intersection(Line(vs.base_vector))[0]
-        vs.plot_segment(Segment(z_intercept, Point(rand_x, rand_y, 0)), 'lightgrey', 'dotted')
-        vs.plot_point(Point(rand_x, rand_y, 0), 'lightgrey', '.')
-        vs.plot_point(vs.get_velocity(Point(rand_x, rand_y, 0)), 'red', '.')
+        vs.plot_segment(Segment(z_intercept, rand_pt), 'red', 'dotted')
+        vs.plot_point(vs.get_velocity(rand_pt), 'red', '.')
 
     plot.show(block=False)
     plot.pause(0.01)
-    sleep(0.5)
+    sleep(3)
 
 plot.show()
