@@ -163,6 +163,6 @@ for wait in range(0,50):
 
     plot.show(block=False)
     plot.pause(0.01)
-    sleep(2)
+    sleep(0.5)
 
 plot.show()
