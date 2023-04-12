@@ -1,8 +1,10 @@
 import numpy as np
 from numpy.linalg import norm as length
+from sympy.geometry import Point
+from sympy.geometry.line import Segment
+
 from scipy.interpolate import Rbf as RBF
 from matplotlib import pyplot as plot
-from math import dist
 from random import randrange
 from time import sleep
 
@@ -30,52 +32,6 @@ def x_values(points): return points[:, 0]
 def y_values(points): return points[:, 1]
 def z_values(points): return points[:, 2]
 
-class TidePoint:
-    def __init__(self, lat: float, lon: float, velo: float):
-        self.point = np.array([lat, lon, velo])
-        self.lat = lat
-        self.lon = lon
-        self.velo = velo
-
-    def scale(self, x, y, z):
-        return TidePoint(self.lat*x, self.lon*y, self.velo*z)
-
-class TidePoints:
-    def update(self):
-        for pt in self.tide_points:
-            if not isinstance(pt, TidePoint): raise TypeError
-        self.size = len(self.tide_points)
-        self.points = np.array([tp.point for tp in self.tide_points])
-        self.first_tide_point = self.tide_points[0]
-        self.last_tide_point = self.tide_points[-1]
-        self.first_point = self.points[0]
-        self.last_point = self.points[-1]
-
-    def __init__(self, *tide_points):
-        self.index = 0
-        self.size = 0
-        self.tide_points = self.points = None
-        self.first_tide_point = self.last_tide_point = self.first_point = self.last_point = None
-        if tide_points:
-            self.tide_points = tide_points
-            self.update()
-
-    def add(self, tide_point: TidePoint):
-        if not isinstance(tide_point, TidePoint): raise TypeError
-        if self.tide_points is not None:
-            self.tide_points = np.append(self.tide_points, tide_point)
-        else:
-            self.tide_points = np.asarray([tide_point])
-        self.update()
-
-    def __iter__(self): return self
-    def __next__(self):
-        if self.index < self.size:
-            tp = self.tide_points[self.index]
-            self.index += 1
-            return tp
-        raise StopIteration
-
 class VelocitySurface:
 
     scale = 100
@@ -83,36 +39,14 @@ class VelocitySurface:
     SURFACE = 'SURFACE'
 
     @staticmethod
-    def vector(start, finish):
-        begin = end = None
-        if isinstance(start, TidePoint):
-            begin = start.point
-        elif isinstance(start, np.ndarray) and len(start) == 3:
-            begin = start
-        elif isinstance(start, list) and len(start) ==3:
-            begin = np.array(start)
-
-        if isinstance(finish, TidePoint):
-            end = finish.point
-        elif isinstance(finish, np.ndarray) and len(finish) == 3:
-            end = finish
-        elif isinstance(finish, list) and len(finish) == 3:
-            end = np.array(finish)
-
-        return np.array([begin, end])
+    def new_point(p1: Point, p2: Point, t): return (p1.scale(1-t, 1-t, 1-t)+p2.scale(t, t, t)).evalf()
 
     @staticmethod
-    def new_point(a, b, t): return np.array([a[i]*(1-t)+b[i]*t for i in range(0,3)])
+    def step_size(segments): return np.array([s.length for s in segments]).min()/10
 
-    @staticmethod
-    def step_size(vectors): return np.array([length(v) for v in vectors]).min()/10
-
-    def edge_points(self, a, b, ss):
-        edge_points = []
-        number_of_points = int(round(dist(a,b)/ss,0))
-        for step in range(1, number_of_points):
-            edge_points.append(self.new_point(a,b,step*ss/dist(a,b)))
-        return edge_points
+    def edge_points(self, p1: Point, p2: Point, ss):
+        num_pts = range(1, int(round(p1.distance(p2)/ss, 0)))
+        return [self.new_point(p1, p2, i*ss/p1.distance(p2)) for i in num_pts]
 
     def plot_vector(self, vector, color, style):
         self.ax.plot3D(x_values(vector), y_values(vector), z_values(vector), c=color, linestyle=style)
@@ -128,7 +62,7 @@ class VelocitySurface:
             ZI = self.surface(XI, YI)
 
         self.ax.scatter(self.edge_x, self.edge_y, self.edge_z, c='orange', marker='.')
-        self.ax.scatter(self.scaled_x, self.scaled_y, self.scaled_z, c='orange', marker='.')
+        self.ax.scatter(self.scaled_x, self.scaled_y, self.scaled_z, c='black', marker='.')
         if self.shape == VelocitySurface.LINE:
             self.plot_vector(self.base_vector, 'lightgrey', 'solid')
             self.plot_vector(VelocitySurface.vector(z_intercept(self.base_vector), self.base_vector[0]), 'grey', 'dotted')
@@ -146,55 +80,49 @@ class VelocitySurface:
         projection = translate_3D(projection, VelocitySurface.vector(projection[0], base_vector[0]))
         return projection[1]
 
-    def get_velocity(self, tide_point):
-        if not isinstance(tide_point, TidePoint): raise TypeError
+    def get_velocity(self, point: Point):
+        if not isinstance(point, Point): raise TypeError
         if self.shape == VelocitySurface.SURFACE:
-            z = self.surface(tide_point.lat, tide_point.lon)
-            return np.array([tide_point.lat, tide_point.lon, z])
+            return Point(point[0], point[1], self.surface(point[0], point[1]).tolist()).evalf()
         elif self.shape == VelocitySurface.LINE:
             z = self.projection(tide_point.lat, tide_point.lon, self.base_vector)
             return z
 
-    def __init__(self, tide_points):
-        if tide_points.size < 2: raise ValueError
-        if not isinstance(tide_points, TidePoints): raise TypeError
-        self.edge_x = self.edge_y = self.edge_z = 0
-        self.scaled_x = self.scaled_y = self.scaled_z = 0
-        self.x_min = self.x_max = self.y_min = self.y_max = 0
-        self.shape = self.base_vector = self.surface = None
-        self.tide_points = tide_points
+    def __init__(self, *points):
+        if len(points) < 2: raise ValueError
+        for pt in points:
+            if not isinstance(pt, Point): raise TypeError
+        self.points = points
 
-        if tide_points.size == 2:
+        if len(points) == 2:
             self.shape = VelocitySurface.LINE
         else:
             self.shape = VelocitySurface.SURFACE
 
-        scaled_tide_points = TidePoints()
-        for pt in tide_points:
-            scaled_tide_points.add(pt.scale(VelocitySurface.scale, VelocitySurface.scale, 1))
+        scaled_points = [pt.scale(VelocitySurface.scale, VelocitySurface.scale, 1) for pt in points]
+        segments = [Segment(pt, scaled_points[i+1]) for i, pt in enumerate(scaled_points[:-1])]
 
-        vectors = [VelocitySurface.vector(pt, scaled_tide_points.points[i+1]) for i, pt in enumerate(scaled_tide_points.points[:-1])]
         if self.shape == VelocitySurface.SURFACE:  # close the figure
-            vectors.append(VelocitySurface.vector(scaled_tide_points.last_tide_point, scaled_tide_points.first_tide_point))
+            segments.append(Segment(scaled_points[-1], scaled_points[0]))
         elif self.shape == VelocitySurface.LINE:
-            self.base_vector = vectors[0]
+            self.base_vector = Segment[0]
 
-        ss = self.step_size(vectors)
+        ss = self.step_size(segments)
         self.ax = plot.axes(projection="3d")
 
-        points = [scaled_tide_points.first_point]
-        points += [v[1] for v in vectors]
+        points = [scaled_points[0]] + [s.points[1] for s in segments]
 
         edge_points = []
         for i, pt in enumerate(points[:-1]):
-            edge_points += [pt] + self.edge_points(pt, points[i + 1], ss)
-        if self.shape == 'SURFACE':
-            edge_points.append(scaled_tide_points.first_point)
-        elif self.shape == 'LINE':
-            edge_points.append(scaled_tide_points.last_point)
+            edge_points += [pt] + self.edge_points(pt, points[i+1], ss)
 
-        points = np.array(points)
-        edge_points = np.array(edge_points)
+        if self.shape == 'SURFACE':
+            edge_points.append(scaled_points[0])
+        elif self.shape == 'LINE':
+            edge_points.append(scaled_points[-1])
+
+        points = np.array(points).astype(float)
+        edge_points = np.array(edge_points).astype(float)
 
         self.scaled_x = x_values(points)
         self.scaled_y = y_values(points)
@@ -212,25 +140,22 @@ class VelocitySurface:
         if self.shape == VelocitySurface.SURFACE:
             self.surface = RBF(self.edge_x, self.edge_y, self.edge_z, function='thin_plate', smooth=100.0)
 
-p1 = TidePoint(0, 0, 100)
-p2 = TidePoint(3, 0, 300)
-p3 = TidePoint(3, 4, 200)
-p4 = TidePoint(0, 4, 300)
+p1 = Point(0, 0, 100)
+p2 = Point(3, 0, 300)
+p3 = Point(3, 4, 200)
+p4 = Point(0, 4, 300)
 
-tide_points = TidePoints(p1,p2,p3,p4)
-tide_points = TidePoints(p1,p3)
-# tide_points = TidePoints(p1,p3, p4)
-vs = VelocitySurface(tide_points)
+vs = VelocitySurface(p1,p2,p3,p4)
+# vs = VelocitySurface(p1,p3)
 vs.show_axes()
 
 for wait in range(0,50):
     rand_x = randrange(vs.x_max - vs.x_min) + vs.x_min
     rand_y = randrange(vs.y_max - vs.y_min) + vs.y_min
-    pt = vs.get_velocity(TidePoint(rand_x, rand_y, 0))
 
     if vs.shape == vs.SURFACE:
-        vs.plot_point(np.array([rand_x, rand_y, 0]), 'grey', '.')
-        vs.plot_point(pt, 'red', '.')
+        vs.plot_point(Point(rand_x, rand_y, 0), 'grey', '.')
+        vs.plot_point(vs.get_velocity(Point(rand_x, rand_y, 0)), 'red', '.')
     elif vs.shape == vs.LINE:
         vs.plot_vector(vs.vector(z_intercept(vs.base_vector), np.array([rand_x, rand_y, 0])), 'lightgrey', 'dotted')
         vs.plot_point(np.array([rand_x, rand_y, 0]), 'lightgrey', '.')
