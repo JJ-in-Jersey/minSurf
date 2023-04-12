@@ -158,8 +158,8 @@ for wait in range(0,50):
         vs.plot_point(vs.get_velocity(Point(rand_x, rand_y, 0)), 'red', '.')
     elif vs.shape == vs.LINE:
         vs.plot_vector(vs.vector(z_intercept(vs.base_vector), np.array([rand_x, rand_y, 0])), 'lightgrey', 'dotted')
-        vs.plot_point(np.array([rand_x, rand_y, 0]), 'lightgrey', '.')
-        vs.plot_point(pt, 'red', '.')
+        vs.plot_point(Point(rand_x, rand_y, 0), 'lightgrey', '.')
+        vs.plot_point(vs.get_velocity(Point(rand_x, rand_y, 0)), 'red', '.')
 
     plot.show(block=False)
     plot.pause(0.01)
