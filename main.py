@@ -66,13 +66,15 @@ class VelocitySurface:
         plot.show(block=False)
         plot.pause(0.01)
 
-    def projection(self, x, y, vector):
-        base_vector = VelocitySurface.vector(z_intercept(vector), vector[1])
-        xy_vector = VelocitySurface.vector(z_intercept(vector), [x,y,0])
+    def projec(self, x, y, segment):
+        z_intercept = vs.XY_PLANE.intersection(Line(segment))[0]
+        base_vector = np.array(Segment(z_intercept, segment.p1).points).astype(float)
+        xy_vector = np.array(Segment(z_intercept, [x,y,0]).points).astype(float)
+
         magnitude = np.vdot(xy_vector, base_vector)/length(base_vector)
         unit_vector = np.multiply(base_vector, 1/length(base_vector))
         projection = np.multiply(unit_vector, magnitude)
-        projection = translate_3D(projection, VelocitySurface.vector(projection[0], base_vector[0]))
+        projection = translate_3D(projection, np.array(Segment(projection[0], base_vector[0]).points).astype(float))
         return projection[1]
 
     def get_velocity(self, point: Point):
@@ -80,7 +82,8 @@ class VelocitySurface:
         if self.shape == VelocitySurface.SURFACE:
             return Point(point[0], point[1], self.surface(point[0], point[1]).tolist()).evalf()
         elif self.shape == VelocitySurface.LINE:
-            z = self.projection(tide_point.lat, tide_point.lon, self.base_vector)
+            z = self.projec(point.x, point.y, self.base_vector)
+            zz = Line(self.base_vector).projection(point)
             return z
 
     def __init__(self, *points):
