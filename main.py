@@ -23,11 +23,11 @@ class VelocitySurface:
         num_pts = range(0, int(round(segment.length/ss, 0)))
         return [segment.arbitrary_point(t).evalf(subs={t:i*ss/segment.length}) for i in num_pts]
 
-    def plot_segment(self, segment, color, style, weight):
+    def __plot_segment(self, segment, color, style, weight):
         points = np.array(segment.points).astype(float)
         self.ax.plot3D(points[:, 0], points[:, 1], points[:, 2], c=color, linestyle=style, linewidth=weight)
 
-    def plot_point(self, point, color, mark):
+    def __plot_point(self, point, color, mark):
         self.ax.scatter(point.x, point.y, point.z, c=color, marker=mark)
 
     def show_plot(self):
@@ -42,14 +42,14 @@ class VelocitySurface:
 
         if self.shape == VelocitySurface.LINE:
             z_intercept = VelocitySurface.XY_PLANE.intersection(Line(self.range))[0]
-            self.plot_point(z_intercept, 'black', '.')
-            self.plot_segment(Segment(z_intercept, self.range.p2), 'grey', '--', 0.5)
-            self.plot_segment(Segment(z_intercept, self.input_point), 'grey', '--', 0.5)
+            self.__plot_point(z_intercept, 'black', '.')
+            self.__plot_segment(Segment(z_intercept, self.range.p2), 'grey', '--', 0.5)
+            self.__plot_segment(Segment(z_intercept, self.input_point), 'grey', '--', 0.5)
         if self.shape == VelocitySurface.SURFACE:
             self.ax.plot_wireframe(XI, YI, ZI, rstride=10, cstride=10, color='grey', linewidth=0.25)
 
-        self.plot_segment(Segment(self.input_point, self.output_point), 'grey', '--', 0.5)
-        self.plot_point(self.output_point, 'red', 'o')
+        self.__plot_segment(Segment(self.input_point, self.output_point), 'grey', '--', 0.5)
+        self.__plot_point(self.output_point, 'red', 'o')
         plot.show()
 
     def get_velocity(self, point: Point):
