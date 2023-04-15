@@ -7,7 +7,6 @@ from matplotlib import pyplot as plot
 from random import randrange
 from time import sleep
 
-
 # noinspection PyArgumentList
 class VelocitySurface:
 
@@ -70,7 +69,7 @@ class VelocitySurface:
     def __init__(self, *points):
         self.input_point = self.output_point = self.shape = self.linear_range = None
         self.input_plot_points = self.edge_plot_points = self.x_limits = self.y_limits = None
-        self.surface = None
+        self.ax = self.surface = None
         self.initialize(points)
 
     def initialize(self, points):
