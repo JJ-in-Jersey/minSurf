@@ -2,13 +2,13 @@ import numpy as np
 from sympy.geometry import Point, Line, Segment, Plane
 from sympy import symbols
 
-from scipy.interpolate import Rbf as RBF
+from scipy.interpolate import RBFInterpolator, Rbf
 from matplotlib import pyplot as plot
 from random import randrange
 from time import sleep
 
 
-# noinspection PyUnresolvedReferences
+# noinspection PyArgumentList
 class VelocitySurface:
 
     scale = 1000
@@ -20,7 +20,8 @@ class VelocitySurface:
     @staticmethod
     def __step_size(segments): return np.array([s.length for s in segments]).min()/10
 
-    def __edge_points(self, segments, ss, first_point, last_point):
+    @staticmethod
+    def __edge_points(segments, ss):
         t = symbols('t')
         edge_points = []
         for segment in segments:
@@ -40,9 +41,9 @@ class VelocitySurface:
         yi = np.linspace(min(self.y_limits), max(self.y_limits), VelocitySurface.mesh_density)
         XI, YI = np.meshgrid(xi, yi)
 
-        # self.ax = plot.axes(projection="3d")
-        self.ax.scatter(self.scaled_edge_points[0], self.scaled_edge_points[1], self.scaled_edge_points[2], c='orange', marker='.')
-        self.ax.scatter(self.scaled_input[0], self.scaled_input[1], self.scaled_input[2], c='black', marker='.')
+        self.ax = plot.axes(projection="3d")
+        self.ax.scatter(self.edge_plot_points[0], self.edge_plot_points[1], self.edge_plot_points[2], c='orange', marker='.')
+        self.ax.scatter(self.input_plot_points[0], self.input_plot_points[1], self.input_plot_points[2], c='black', marker='.')
 
         if self.shape == VelocitySurface.LINE:
             z_intercept = VelocitySurface.XY_PLANE.intersection(Line(self.linear_range))[0]
@@ -61,16 +62,15 @@ class VelocitySurface:
         if not isinstance(point, Point): raise TypeError
         self.input_point = point
         if self.shape == VelocitySurface.SURFACE:
-            self.output_point = Point(point.x, point.y, self.surface(point[0], point[1]).tolist()).evalf()
+            self.output_point = Point(point.x, point.y, self.surface(point.x, point.y).tolist()).evalf()
         elif self.shape == VelocitySurface.LINE:
             self.output_point = Line(self.linear_range).projection(point)
         return self.output_point
 
     def __init__(self, *points):
-        self.input_points = self.input_point = self.output_point = self.perp_seg = None
-        self.scaled_edge_points = self.scaled_input = self.shape = self.surface = self.linear_range = None
-        self.x_limits = self.y_limits = None
-        self.ax = plot.axes(projection="3d")
+        self.input_point = self.output_point = self.shape = self.linear_range = None
+        self.input_plot_points = self.edge_plot_points = self.x_limits = self.y_limits = None
+        self.surface = None
         self.initialize(points)
 
     def initialize(self, points):
@@ -85,19 +85,19 @@ class VelocitySurface:
 
         scaled_point_list = [pt.scale(VelocitySurface.scale, VelocitySurface.scale, 1) for pt in points]
         closed_figure = scaled_point_list + [scaled_point_list[0]]
-        segments = [Segment(pt, closed_figure[i+1]) for i, pt in enumerate(closed_figure[:-1])]
+        segments = [Segment(pt, closed_figure[index+1]) for index, pt in enumerate(closed_figure[:-1])]
         self.linear_range = segments[0]
         ss = self.__step_size(segments)
-        edge_point_array = self.__edge_points(segments, ss, scaled_point_list[0], scaled_point_list[-1])
+        edge_point_array = self.__edge_points(segments, ss)
 
         figure_point_array = np.array(scaled_point_list).astype(float)
-        self.scaled_input = [figure_point_array[:, 0], figure_point_array[:, 1], figure_point_array[:, 2]]
-        self.scaled_edge_points = [edge_point_array[:, 0], edge_point_array[:, 1], edge_point_array[:, 2]]
-        self.x_limits = [int(round(self.scaled_input[0].min(), 0)), int(round(self.scaled_input[0].max(), 0))]
-        self.y_limits = [int(round(self.scaled_input[1].min(), 0)), int(round(self.scaled_input[1].max(), 0))]
+        self.input_plot_points = [figure_point_array[:, 0], figure_point_array[:, 1], figure_point_array[:, 2]]
+        self.edge_plot_points = [edge_point_array[:, 0], edge_point_array[:, 1], edge_point_array[:, 2]]
+        self.x_limits = [int(round(self.input_plot_points[0].min(), 0)), int(round(self.input_plot_points[0].max(), 0))]
+        self.y_limits = [int(round(self.input_plot_points[1].min(), 0)), int(round(self.input_plot_points[1].max(), 0))]
 
         if self.shape == VelocitySurface.SURFACE:
-            self.surface = RBF(self.scaled_edge_points[0], self.scaled_edge_points[1], self.scaled_edge_points[2], function='thin_plate', smooth=100.0)
+            self.surface = Rbf(self.edge_plot_points[0], self.edge_plot_points[1], self.edge_plot_points[2], function='thin_plate', smooth=100.0)
 
 p1 = Point(0, 0, 100)
 p2 = Point(3, 0, 300)
